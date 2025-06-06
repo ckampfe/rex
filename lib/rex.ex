@@ -1,13 +1,10 @@
 defmodule Rex do
-  @strings_table :rex_strings
-  @hashes_table :rex_hashes
-
   ### MISC ###
-  def interpret({:array, [bulk_string: "PING"]}) do
+  def interpret([bulk_string: "PING"], _state) do
     "PONG"
   end
 
-  def interpret({:array, [bulk_string: "COMMAND", bulk_string: "DOCS"]}) do
+  def interpret([bulk_string: "COMMAND", bulk_string: "DOCS"], _state) do
     "OK"
   end
 
@@ -15,15 +12,18 @@ defmodule Rex do
 
   ### STRING ###
 
-  def interpret({:array, [bulk_string: "GET", bulk_string: key]}) do
-    case :ets.lookup(@strings_table, key) do
+  def interpret([bulk_string: "GET", bulk_string: key], state) do
+    case :ets.lookup(state.table, key) do
       [{^key, value}] -> value
       [] -> nil
     end
   end
 
-  def interpret({:array, [{:bulk_string, "SET"}, {:bulk_string, key}, {:bulk_string, value}]}) do
-    :ets.insert(@strings_table, {key, value})
+  def interpret(
+        [{:bulk_string, "SET"}, {:bulk_string, key}, {:bulk_string, value}],
+        state
+      ) do
+    :ets.insert(state.table, {key, value})
 
     "OK"
   end
@@ -33,68 +33,52 @@ defmodule Rex do
   ### HASH ###
 
   def interpret(
-        {:array, [{:bulk_string, "HGET"}, {:bulk_string, hash_name}, {:bulk_string, key}]}
+        [{:bulk_string, "HGET"}, {:bulk_string, hash_name}, {:bulk_string, key}],
+        state
       ) do
-    case :ets.lookup(@hashes_table, {hash_name, key}) do
-      [{_, value}] -> value
+    case :ets.lookup(state.table, hash_name) do
+      [{_, map}] -> Map.get(map, key)
       [] -> nil
     end
   end
 
-  def interpret({:array, [{:bulk_string, "HGETALL"}, {:bulk_string, hash_name}]}) do
-    result =
-      @hashes_table
-      |> :ets.match({{hash_name, :"$1"}, :"$2"})
-      |> Enum.filter(fn
-        [:"$__keys", _] ->
-          false
-
-        _ ->
-          true
-      end)
-      |> Enum.map(fn [k, v] -> {k, v} end)
-      |> Enum.into(%{})
-
-    if Enum.empty?(result) do
-      []
-    else
-      result
+  def interpret([{:bulk_string, "HGETALL"}, {:bulk_string, hash_name}], state) do
+    case :ets.lookup(state.table, hash_name) do
+      [{_, map}] -> map
+      [] -> nil
     end
   end
 
-  def interpret({:array, [{:bulk_string, "HSET"}, {:bulk_string, hash_name} | keypairs]}) do
-    existing_keys =
-      case :ets.lookup(@hashes_table, {hash_name, :"$__keys"}) do
-        [{_, existing_keys}] -> existing_keys
-        [] -> MapSet.new()
-      end
-
-    keys_only =
+  def interpret(
+        [{:bulk_string, "HSET"}, {:bulk_string, hash_name} | keypairs],
+        state
+      ) do
+    addition_map =
       keypairs
       |> Enum.chunk_every(2)
-      |> Enum.map(fn [{:bulk_string, key}, _value] -> key end)
-      |> Enum.into(MapSet.new())
-
-    new_key_count = MapSet.difference(keys_only, existing_keys) |> Enum.count()
-
-    updated_keyset = MapSet.union(existing_keys, keys_only)
-
-    insertables =
-      keypairs
-      |> Enum.chunk_every(2)
-      |> Enum.map(fn [{:bulk_string, key}, {:bulk_string, value}] ->
-        {{hash_name, key}, value}
+      |> Enum.reduce(%{}, fn [{:bulk_string, key}, {:bulk_string, value}], acc ->
+        Map.put(acc, key, value)
       end)
 
-    insertables = insertables ++ [{{hash_name, :"$__keys"}, updated_keyset}]
+    # new_key_count
+    {new_map, number_of_keys_added} =
+      case :ets.lookup(state.table, hash_name) do
+        [{_, current_map}] ->
+          new_map = Map.merge(current_map, addition_map)
 
-    :ets.insert(@hashes_table, insertables)
+          {new_map, map_size(new_map) - map_size(current_map)}
 
-    new_key_count
+        [] ->
+          {addition_map, map_size(addition_map)}
+      end
+
+    :ets.insert(state.table, {hash_name, new_map})
+
+    number_of_keys_added
   end
 
-  def interpret({:array, [{:bulk_string, "HLEN"}, {:bulk_string, hash_name}]}) do
-    case :ets.lookup(@hashes_table, {hash_name, :"$__keys"}) do
+  def interpret([{:bulk_string, "HLEN"}, {:bulk_string, hash_name}], state) do
+    case :ets.lookup(state.table, {hash_name, :"$__keys"}) do
       [{_, existing_keys}] -> Enum.count(existing_keys)
       [] -> 0
     end

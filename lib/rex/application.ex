@@ -7,14 +7,14 @@ defmodule Rex.Application do
 
   @impl true
   def start(_type, _args) do
-    :ets.new(:rex_strings, [:named_table, :set, :public])
-    :ets.new(:rex_hashes, [:named_table, :set, :public])
+    :ets.new(:rex_table, [:named_table, :set, :public])
 
     children = [
       # Starts a worker by calling: Rex.Worker.start_link(arg)
       # {Rex.Worker, arg}
       {Registry, keys: :unique, name: Rex.Registry},
-      {ThousandIsland, port: 6379, handler_module: Rex.Handler}
+      {ThousandIsland,
+       port: 6379, handler_module: Rex.Handler, handler_options: %Rex.State{table: :rex_table}}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

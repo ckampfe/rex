@@ -4,6 +4,7 @@ defmodule Rex.Handler do
 
   @impl ThousandIsland.Handler
   def handle_connection(socket, state) do
+    IO.inspect(state, label: "state")
     {:ok, {_ip, _port} = address} = ThousandIsland.Socket.peername(socket)
     {:ok, _pid} = Registry.register(Rex.Registry, address, nil)
     {:continue, state}
@@ -13,7 +14,7 @@ defmodule Rex.Handler do
   def handle_data(data, socket, state) do
     case V2.decode(data) do
       {:ok, decoded} ->
-        result = Rex.interpret(decoded) |> IO.inspect(label: "interp response")
+        result = Rex.interpret(decoded, state) |> IO.inspect(label: "interp response")
 
         response = V2.encode(result) |> IO.inspect(label: "encoded response")
 

@@ -12,10 +12,10 @@ defmodule ProtocolV2Test do
   end
 
   test "decodes integers" do
-    assert {:ok, {:integer, 1}} = decode(":1\r\n")
-    assert {:ok, {:integer, 1}} = decode(":+1\r\n")
-    assert {:ok, {:integer, -1}} = decode(":-1\r\n")
-    assert {:ok, {:integer, 0}} = decode(":0\r\n")
+    assert {:ok, 1} = decode(":1\r\n")
+    assert {:ok, 1} = decode(":+1\r\n")
+    assert {:ok, -1} = decode(":-1\r\n")
+    assert {:ok, 0} = decode(":0\r\n")
   end
 
   test "decodes bulk strings" do
@@ -24,14 +24,14 @@ defmodule ProtocolV2Test do
   end
 
   test "decodes arrays" do
-    assert {:ok, {:array, []}} = decode("*0\r\n")
+    assert {:ok, []} = decode("*0\r\n")
 
-    assert {:ok, {:array, [{:integer, 1}]}} = decode("*1\r\n:1\r\n")
+    assert {:ok, [1]} = decode("*1\r\n:1\r\n")
 
-    assert {:ok, {:array, [{:simple_string, "OK"}, {:bulk_string, "hello"}]}} =
+    assert {:ok, [{:simple_string, "OK"}, {:bulk_string, "hello"}]} =
              decode("*2\r\n+OK\r\n$5\r\nhello\r\n")
 
-    assert {:ok, {:array, [{:integer, 1}, {:simple_string, "OK"}]}} =
+    assert {:ok, [1, {:simple_string, "OK"}]} =
              decode("*2\r\n:1\r\n+OK\r\n")
   end
 

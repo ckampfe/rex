@@ -14,29 +14,6 @@ defmodule Rex.Protocol.V2 do
 
   defp do_decode(s) do
     case s do
-      <<"*", body::binary>> ->
-        [number_of_elements, commands] =
-          body
-          |> String.split("\r\n", parts: 2)
-
-        number_of_elements = String.to_integer(number_of_elements)
-
-        case number_of_elements do
-          0 ->
-            {:ok, {:array, []}, ""}
-
-          _ ->
-            {rest, decoded} =
-              Enum.reduce(1..number_of_elements, {commands, []}, fn _, {remaining, acc} ->
-                {:ok, decoded, rest} = do_decode(remaining)
-                {rest, [decoded | acc]}
-              end)
-
-            decoded = Enum.reverse(decoded)
-
-            {:ok, {:array, decoded}, rest}
-        end
-
       <<"$", body::binary>> ->
         {length, <<"\r\n", remainder::binary>>} = Integer.parse(body)
 
@@ -47,6 +24,29 @@ defmodule Rex.Protocol.V2 do
           _ ->
             <<s::bytes-size(length), "\r\n", rest::binary>> = remainder
             {:ok, {:bulk_string, s}, rest}
+        end
+
+      <<"*", body::binary>> ->
+        [number_of_elements, commands] =
+          body
+          |> String.split("\r\n", parts: 2)
+
+        number_of_elements = String.to_integer(number_of_elements)
+
+        case number_of_elements do
+          0 ->
+            {:ok, [], ""}
+
+          _ ->
+            {rest, decoded} =
+              Enum.reduce(1..number_of_elements, {commands, []}, fn _, {remaining, acc} ->
+                {:ok, decoded, rest} = do_decode(remaining)
+                {rest, [decoded | acc]}
+              end)
+
+            decoded = Enum.reverse(decoded)
+
+            {:ok, decoded, rest}
         end
 
       <<"+", body::binary>> ->
@@ -60,10 +60,10 @@ defmodule Rex.Protocol.V2 do
       <<":", body::binary>> ->
         case Integer.parse(body) do
           {i, "\r\n"} ->
-            {:ok, {:integer, i}, ""}
+            {:ok, i, ""}
 
           {i, <<"\r\n", rest::binary>>} ->
-            {:ok, {:integer, i}, rest}
+            {:ok, i, rest}
         end
     end
   end
