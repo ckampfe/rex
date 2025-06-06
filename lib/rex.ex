@@ -1,10 +1,10 @@
 defmodule Rex do
   ### MISC ###
-  def interpret([bulk_string: "PING"], _state) do
+  def interpret(["PING"], _state) do
     "PONG"
   end
 
-  def interpret([bulk_string: "COMMAND", bulk_string: "DOCS"], _state) do
+  def interpret(["COMMAND", "DOCS"], _state) do
     "OK"
   end
 
@@ -12,7 +12,7 @@ defmodule Rex do
 
   ### STRING ###
 
-  def interpret([bulk_string: "GET", bulk_string: key], state) do
+  def interpret(["GET", key], state) do
     case :ets.lookup(state.table, key) do
       [{^key, value}] -> value
       [] -> nil
@@ -20,7 +20,7 @@ defmodule Rex do
   end
 
   def interpret(
-        [{:bulk_string, "SET"}, {:bulk_string, key}, {:bulk_string, value}],
+        ["SET", key, value],
         state
       ) do
     :ets.insert(state.table, {key, value})
@@ -33,7 +33,7 @@ defmodule Rex do
   ### HASH ###
 
   def interpret(
-        [{:bulk_string, "HGET"}, {:bulk_string, hash_name}, {:bulk_string, key}],
+        ["HGET", hash_name, key],
         state
       ) do
     case :ets.lookup(state.table, hash_name) do
@@ -42,7 +42,7 @@ defmodule Rex do
     end
   end
 
-  def interpret([{:bulk_string, "HGETALL"}, {:bulk_string, hash_name}], state) do
+  def interpret(["HGETALL", hash_name], state) do
     case :ets.lookup(state.table, hash_name) do
       [{_, map}] -> map
       [] -> nil
@@ -50,13 +50,13 @@ defmodule Rex do
   end
 
   def interpret(
-        [{:bulk_string, "HSET"}, {:bulk_string, hash_name} | keypairs],
+        ["HSET", hash_name | keypairs],
         state
       ) do
     addition_map =
       keypairs
       |> Enum.chunk_every(2)
-      |> Enum.reduce(%{}, fn [{:bulk_string, key}, {:bulk_string, value}], acc ->
+      |> Enum.reduce(%{}, fn [key, value], acc ->
         Map.put(acc, key, value)
       end)
 
@@ -66,10 +66,10 @@ defmodule Rex do
         [{_, current_map}] ->
           new_map = Map.merge(current_map, addition_map)
 
-          {new_map, map_size(new_map) - map_size(current_map)}
+          {new_map, Kernel.map_size(new_map) - Kernel.map_size(current_map)}
 
         [] ->
-          {addition_map, map_size(addition_map)}
+          {addition_map, Kernel.map_size(addition_map)}
       end
 
     :ets.insert(state.table, {hash_name, new_map})
@@ -77,35 +77,30 @@ defmodule Rex do
     number_of_keys_added
   end
 
-  def interpret([{:bulk_string, "HLEN"}, {:bulk_string, hash_name}], state) do
-    case :ets.lookup(state.table, {hash_name, :"$__keys"}) do
-      [{_, existing_keys}] -> Enum.count(existing_keys)
+  def interpret(["HLEN", hash_name], state) do
+    case :ets.lookup(state.table, hash_name) do
+      [{_, existing_keys}] -> Kernel.map_size(existing_keys)
       [] -> 0
     end
   end
 
-  # def interpret({:array, [{:bulk_string, "HDEL"}, {:bulk_string, hash_name} | keys]}) do
-  #   existing_keys =
-  #     case :ets.lookup(@hashes_table, {hash_name, :"$__keys"}) do
-  #       [{_, existing_keys}] -> existing_keys
-  #       [] -> MapSet.new()
-  #     end
+  def interpret(["HDEL", hash_name | keys], state) do
+    case :ets.lookup(state.table, hash_name) do
+      [{_, map}] ->
+        new_map = Map.drop(map, keys)
 
-  #   keys_to_delete =
-  #     keys
-  #     |> Enum.map(fn {:bulk_string, key} ->
-  #       {hash_name, key}
-  #     end)
-  #     |> MapSet.new()
+        :ets.insert(state.table, {hash_name, new_map})
 
-  #   keys_after_deletion = MapSet.difference(existing_keys, keys_to_delete)
+        MapSet.intersection(
+          MapSet.new(keys),
+          MapSet.new(Map.keys(map))
+        )
+        |> Enum.count()
 
-  #   if !Enum.empty?(keys_after_deletion) do
-  #     :ets.insert(@hashes_table, {hash_name})
-  #   else
-  #     :ets.delete(@hashes_table, {hash_name, :"$__keys"})
-  #   end
-  # end
+      [] ->
+        0
+    end
+  end
 
   ### END HASH ###
 end

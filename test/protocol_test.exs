@@ -4,7 +4,7 @@ defmodule ProtocolV2Test do
   doctest Rex
 
   test "decodes simple strings" do
-    assert {:ok, {:simple_string, "OK"}} = decode("+OK\r\n")
+    assert {:ok, "OK"} = decode("+OK\r\n")
   end
 
   test "decodes simple errors" do
@@ -19,8 +19,8 @@ defmodule ProtocolV2Test do
   end
 
   test "decodes bulk strings" do
-    assert {:ok, {:bulk_string, ""}} = decode("$0\r\n\r\n")
-    assert {:ok, {:bulk_string, "hello"}} = decode("$5\r\nhello\r\n")
+    assert {:ok, ""} = decode("$0\r\n\r\n")
+    assert {:ok, "hello"} = decode("$5\r\nhello\r\n")
   end
 
   test "decodes arrays" do
@@ -28,10 +28,10 @@ defmodule ProtocolV2Test do
 
     assert {:ok, [1]} = decode("*1\r\n:1\r\n")
 
-    assert {:ok, [{:simple_string, "OK"}, {:bulk_string, "hello"}]} =
+    assert {:ok, ["OK", "hello"]} =
              decode("*2\r\n+OK\r\n$5\r\nhello\r\n")
 
-    assert {:ok, [1, {:simple_string, "OK"}]} =
+    assert {:ok, [1, "OK"]} =
              decode("*2\r\n:1\r\n+OK\r\n")
   end
 

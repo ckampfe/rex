@@ -19,11 +19,11 @@ defmodule Rex.Protocol.V2 do
 
         case length do
           0 ->
-            {:ok, {:bulk_string, ""}, ""}
+            {:ok, "", ""}
 
           _ ->
             <<s::bytes-size(length), "\r\n", rest::binary>> = remainder
-            {:ok, {:bulk_string, s}, rest}
+            {:ok, s, rest}
         end
 
       <<"*", body::binary>> ->
@@ -51,7 +51,7 @@ defmodule Rex.Protocol.V2 do
 
       <<"+", body::binary>> ->
         [s, remaining] = String.split(body, "\r\n", parts: 2)
-        {:ok, {:simple_string, s}, remaining}
+        {:ok, s, remaining}
 
       <<"-", body::binary>> ->
         [s, remaining] = String.split(body, "\r\n", parts: 2)
