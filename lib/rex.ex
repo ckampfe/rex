@@ -1,4 +1,18 @@
 defmodule Rex do
+  # TODO
+  #
+  # hashmap ops are absolutely not safe in the presence of parallelism.
+  # values can and will be stomped on by parallel processes.
+  # maybe we should use the ets table as a hashmap itself,
+  # rather than storing a hashmap under a named key
+  #
+  # write after read is especially not safe, as the read value
+  # could have changed out from under you.
+  # there is no way to do an atomic CAS operation in ets
+  #
+  # use a table per hashmap, with a genserver that manages
+  # and serializes access to that table? maybe?
+
   ### MISC ###
   def interpret(["PING"], _state) do
     "PONG"
@@ -96,6 +110,44 @@ defmodule Rex do
           MapSet.new(Map.keys(map))
         )
         |> Enum.count()
+
+      [] ->
+        0
+    end
+  end
+
+  def interpret(["HKEYS", hash_name], state) do
+    case :ets.lookup(state.table, hash_name) do
+      [{_, map}] ->
+        Map.keys(map)
+
+      [] ->
+        []
+    end
+  end
+
+  def interpret(["HMGET", hash_name | keys], state) do
+    case :ets.lookup(state.table, hash_name) do
+      [{_, map}] ->
+        keys
+        |> Enum.reduce([], fn key, acc ->
+          [Map.get(map, key) | acc]
+        end)
+        |> Enum.reverse()
+
+      [] ->
+        []
+    end
+  end
+
+  def interpret(["HEXISTS", hash_name, key], state) do
+    case :ets.lookup(state.table, hash_name) do
+      [{_, map}] ->
+        if Map.has_key?(map, key) do
+          1
+        else
+          0
+        end
 
       [] ->
         0

@@ -191,4 +191,95 @@ defmodule HashTest do
 
     assert 0 == interpret(["HLEN", "some map"], context[:state])
   end
+
+  test "HKEYS", context do
+    assert [] == interpret(["HKEYS", "doesntexist"], context[:state])
+
+    assert 2 ==
+             interpret(
+               [
+                 "HSET",
+                 "some map",
+                 "a",
+                 "b",
+                 "c",
+                 "d"
+               ],
+               context[:state]
+             )
+
+    assert ["a", "c"] == interpret(["HKEYS", "some map"], context[:state])
+  end
+
+  test "HMGET", context do
+    assert 2 ==
+             interpret(
+               [
+                 "HSET",
+                 "some map",
+                 "a",
+                 "b",
+                 "c",
+                 "d"
+               ],
+               context[:state]
+             )
+
+    assert ["b", "d", nil] ==
+             interpret(
+               [
+                 "HMGET",
+                 "some map",
+                 "a",
+                 "c",
+                 "x"
+               ],
+               context[:state]
+             )
+  end
+
+  test "HEXISTS", context do
+    assert 2 ==
+             interpret(
+               [
+                 "HSET",
+                 "some map",
+                 "a",
+                 "b",
+                 "c",
+                 "d"
+               ],
+               context[:state]
+             )
+
+    assert 1 ==
+             interpret(
+               [
+                 "HEXISTS",
+                 "some map",
+                 "a"
+               ],
+               context[:state]
+             )
+
+    assert 0 ==
+             interpret(
+               [
+                 "HEXISTS",
+                 "some map",
+                 "nokey"
+               ],
+               context[:state]
+             )
+
+    assert 0 ==
+             interpret(
+               [
+                 "HEXISTS",
+                 "no map",
+                 "nokey"
+               ],
+               context[:state]
+             )
+  end
 end
