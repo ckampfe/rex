@@ -21,3 +21,6 @@ rex-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# Redis dbs
+*.rdb
