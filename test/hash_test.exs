@@ -1,285 +1,215 @@
 defmodule HashTest do
   use ExUnit.Case
-  doctest Rex
   import Rex
-  alias Rex.State
 
   setup do
-    table = :ets.new(:ok, [:set])
-    state = %State{table: table}
-    [state: state]
+    %{map: :rand.bytes(40)}
   end
 
-  test "HSET single key new", context do
+  test "HSET single key new", %{map: map} do
     assert 1 ==
-             interpret(
-               [
-                 "HSET",
-                 "some map",
-                 "a key",
-                 "a value"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HSET",
+               map,
+               "a key",
+               "a value"
+             ])
 
     assert "a value" ==
-             interpret(
-               [
-                 "HGET",
-                 "some map",
-                 "a key"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HGET",
+               map,
+               "a key"
+             ])
 
     assert nil ==
-             interpret(
-               [
-                 "HGET",
-                 "some map",
-                 "no key"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HGET",
+               map,
+               "no key"
+             ])
 
     assert nil ==
-             interpret(
-               [
-                 "HGET",
-                 "no map",
-                 "no key"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HGET",
+               "no map",
+               "no key"
+             ])
   end
 
-  test "HSET single key prior", context do
+  test "HSET single key prior", %{map: map} do
     assert 1 ==
-             interpret(
-               [
-                 "HSET",
-                 "some map",
-                 "a key",
-                 "a value"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HSET",
+               map,
+               "a key",
+               "a value"
+             ])
 
     assert "a value" ==
-             interpret(
-               [
-                 "HGET",
-                 "some map",
-                 "a key"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HGET",
+               map,
+               "a key"
+             ])
 
     assert 0 ==
-             interpret(
-               [
-                 "HSET",
-                 "some map",
-                 "a key",
-                 "a new value"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HSET",
+               map,
+               "a key",
+               "a new value"
+             ])
 
     assert "a new value" ==
-             interpret(
-               [
-                 "HGET",
-                 "some map",
-                 "a key"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HGET",
+               map,
+               "a key"
+             ])
   end
 
-  test "HSET multiple keys new", context do
+  test "HSET multiple keys new", %{map: map} do
     assert 2 ==
-             interpret(
-               [
-                 "HSET",
-                 "some map",
-                 "a",
-                 "b",
-                 "c",
-                 "d"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HSET",
+               map,
+               "a",
+               "b",
+               "c",
+               "d"
+             ])
 
     assert "b" ==
-             interpret(
-               [
-                 "HGET",
-                 "some map",
-                 "a"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HGET",
+               map,
+               "a"
+             ])
 
     assert "d" ==
-             interpret(
-               [
-                 "HGET",
-                 "some map",
-                 "c"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HGET",
+               map,
+               "c"
+             ])
   end
 
-  test "HLEN", context do
+  test "HLEN", %{map: map} do
     assert 0 ==
-             interpret(
-               [
-                 "HLEN",
-                 "doesn't exist"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HLEN",
+               "doesn't exist"
+             ])
 
     assert 2 ==
-             interpret(
-               [
-                 "HSET",
-                 "some map",
-                 "a",
-                 "b",
-                 "c",
-                 "d"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HSET",
+               map,
+               "a",
+               "b",
+               "c",
+               "d"
+             ])
 
     assert 2 ==
-             interpret(
-               [
-                 "HLEN",
-                 "some map"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HLEN",
+               map
+             ])
   end
 
-  test "HDEL", context do
+  test "HDEL", %{map: map} do
     assert 2 ==
-             interpret(
-               [
-                 "HSET",
-                 "some map",
-                 "a",
-                 "b",
-                 "c",
-                 "d"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HSET",
+               map,
+               "a",
+               "b",
+               "c",
+               "d"
+             ])
 
-    assert 0 == interpret(["HDEL", "some map", "nokey"], context[:state])
+    assert 0 == interpret(["HDEL", map, "nokey"])
 
-    assert 2 == interpret(["HLEN", "some map"], context[:state])
+    assert 2 == interpret(["HLEN", map])
 
-    assert 1 == interpret(["HDEL", "some map", "a"], context[:state])
+    assert 1 == interpret(["HDEL", map, "a"])
 
-    assert 1 == interpret(["HLEN", "some map"], context[:state])
+    assert 1 == interpret(["HLEN", map])
 
-    assert 1 == interpret(["HDEL", "some map", "b", "c", "d", "e", "f"], context[:state])
+    assert 1 == interpret(["HDEL", map, "b", "c", "d", "e", "f"])
 
-    assert 0 == interpret(["HLEN", "some map"], context[:state])
+    assert 0 == interpret(["HLEN", map])
   end
 
-  test "HKEYS", context do
-    assert [] == interpret(["HKEYS", "doesntexist"], context[:state])
+  test "HKEYS", %{map: map} do
+    assert [] == interpret(["HKEYS", "doesntexist"])
 
     assert 2 ==
-             interpret(
-               [
-                 "HSET",
-                 "some map",
-                 "a",
-                 "b",
-                 "c",
-                 "d"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HSET",
+               map,
+               "a",
+               "b",
+               "c",
+               "d"
+             ])
 
-    assert ["a", "c"] == interpret(["HKEYS", "some map"], context[:state])
+    assert ["a", "c"] == interpret(["HKEYS", map])
   end
 
-  test "HMGET", context do
+  test "HMGET", %{map: map} do
     assert 2 ==
-             interpret(
-               [
-                 "HSET",
-                 "some map",
-                 "a",
-                 "b",
-                 "c",
-                 "d"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HSET",
+               map,
+               "a",
+               "b",
+               "c",
+               "d"
+             ])
 
     assert ["b", "d", nil] ==
-             interpret(
-               [
-                 "HMGET",
-                 "some map",
-                 "a",
-                 "c",
-                 "x"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HMGET",
+               map,
+               "a",
+               "c",
+               "x"
+             ])
   end
 
-  test "HEXISTS", context do
+  test "HEXISTS", %{map: map} do
     assert 2 ==
-             interpret(
-               [
-                 "HSET",
-                 "some map",
-                 "a",
-                 "b",
-                 "c",
-                 "d"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HSET",
+               map,
+               "a",
+               "b",
+               "c",
+               "d"
+             ])
 
     assert 1 ==
-             interpret(
-               [
-                 "HEXISTS",
-                 "some map",
-                 "a"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HEXISTS",
+               map,
+               "a"
+             ])
 
     assert 0 ==
-             interpret(
-               [
-                 "HEXISTS",
-                 "some map",
-                 "nokey"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HEXISTS",
+               map,
+               "nokey"
+             ])
 
     assert 0 ==
-             interpret(
-               [
-                 "HEXISTS",
-                 "no map",
-                 "nokey"
-               ],
-               context[:state]
-             )
+             interpret([
+               "HEXISTS",
+               map,
+               "nokey"
+             ])
   end
 end

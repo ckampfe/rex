@@ -12,13 +12,19 @@ defmodule Rex do
   #
   # use a table per hashmap, with a genserver that manages
   # and serializes access to that table? maybe?
+  #
+  # or: use a genserver per hashmap, and use the registry
+  # to refer to the genserver
+
+  alias Rex.HashServer
+  alias Rex.StringServer
 
   ### MISC ###
-  def interpret(["PING"], _state) do
+  def interpret(["PING"]) do
     "PONG"
   end
 
-  def interpret(["COMMAND", "DOCS"], _state) do
+  def interpret(["COMMAND", "DOCS"]) do
     "OK"
   end
 
@@ -26,132 +32,48 @@ defmodule Rex do
 
   ### STRING ###
 
-  def interpret(["GET", key], state) do
-    case :ets.lookup(state.table, key) do
-      [{^key, value}] -> value
-      [] -> nil
-    end
+  def interpret(["GET", key]) do
+    StringServer.get(key)
   end
 
-  def interpret(
-        ["SET", key, value],
-        state
-      ) do
-    :ets.insert(state.table, {key, value})
-
-    "OK"
+  def interpret(["SET", key, value]) do
+    StringServer.set(key, value)
   end
 
   ### END STRING ###
 
   ### HASH ###
 
-  def interpret(
-        ["HGET", hash_name, key],
-        state
-      ) do
-    case :ets.lookup(state.table, hash_name) do
-      [{_, map}] -> Map.get(map, key)
-      [] -> nil
-    end
+  def interpret(["HGET", hash_name, key]) do
+    HashServer.hget(hash_name, key)
   end
 
-  def interpret(["HGETALL", hash_name], state) do
-    case :ets.lookup(state.table, hash_name) do
-      [{_, map}] -> map
-      [] -> nil
-    end
+  def interpret(["HGETALL", hash_name]) do
+    HashServer.hgetall(hash_name)
   end
 
-  def interpret(
-        ["HSET", hash_name | keypairs],
-        state
-      ) do
-    addition_map =
-      keypairs
-      |> Enum.chunk_every(2)
-      |> Enum.reduce(%{}, fn [key, value], acc ->
-        Map.put(acc, key, value)
-      end)
-
-    # new_key_count
-    {new_map, number_of_keys_added} =
-      case :ets.lookup(state.table, hash_name) do
-        [{_, current_map}] ->
-          new_map = Map.merge(current_map, addition_map)
-
-          {new_map, Kernel.map_size(new_map) - Kernel.map_size(current_map)}
-
-        [] ->
-          {addition_map, Kernel.map_size(addition_map)}
-      end
-
-    :ets.insert(state.table, {hash_name, new_map})
-
-    number_of_keys_added
+  def interpret(["HSET", hash_name | keypairs]) do
+    HashServer.hset(hash_name, keypairs)
   end
 
-  def interpret(["HLEN", hash_name], state) do
-    case :ets.lookup(state.table, hash_name) do
-      [{_, existing_keys}] -> Kernel.map_size(existing_keys)
-      [] -> 0
-    end
+  def interpret(["HLEN", hash_name]) do
+    HashServer.hlen(hash_name)
   end
 
-  def interpret(["HDEL", hash_name | keys], state) do
-    case :ets.lookup(state.table, hash_name) do
-      [{_, map}] ->
-        new_map = Map.drop(map, keys)
-
-        :ets.insert(state.table, {hash_name, new_map})
-
-        MapSet.intersection(
-          MapSet.new(keys),
-          MapSet.new(Map.keys(map))
-        )
-        |> Enum.count()
-
-      [] ->
-        0
-    end
+  def interpret(["HDEL", hash_name | keys]) do
+    HashServer.hdel(hash_name, keys)
   end
 
-  def interpret(["HKEYS", hash_name], state) do
-    case :ets.lookup(state.table, hash_name) do
-      [{_, map}] ->
-        Map.keys(map)
-
-      [] ->
-        []
-    end
+  def interpret(["HKEYS", hash_name]) do
+    HashServer.hkeys(hash_name)
   end
 
-  def interpret(["HMGET", hash_name | keys], state) do
-    case :ets.lookup(state.table, hash_name) do
-      [{_, map}] ->
-        keys
-        |> Enum.reduce([], fn key, acc ->
-          [Map.get(map, key) | acc]
-        end)
-        |> Enum.reverse()
-
-      [] ->
-        []
-    end
+  def interpret(["HMGET", hash_name | keys]) do
+    HashServer.hmget(hash_name, keys)
   end
 
-  def interpret(["HEXISTS", hash_name, key], state) do
-    case :ets.lookup(state.table, hash_name) do
-      [{_, map}] ->
-        if Map.has_key?(map, key) do
-          1
-        else
-          0
-        end
-
-      [] ->
-        0
-    end
+  def interpret(["HEXISTS", hash_name, key]) do
+    HashServer.hexists(hash_name, key)
   end
 
   ### END HASH ###
