@@ -212,4 +212,30 @@ defmodule HashTest do
                "nokey"
              ])
   end
+
+  test "HINCRBY", %{map: map} do
+    assert 1 == interpret(["HINCRBY", map, "a", 1])
+    assert 2 == interpret(["HINCRBY", map, "a", 1])
+    assert 3 == interpret(["HINCRBY", map, "a", 1])
+    assert 11 == interpret(["HINCRBY", map, "a", 8])
+    assert 8 == interpret(["HINCRBY", map, "a", -3])
+    assert 8 == interpret(["HINCRBY", map, "a", 0])
+
+    assert 1 ==
+             interpret([
+               "HSET",
+               map,
+               "a key",
+               "a value"
+             ])
+
+    assert 1 == interpret(["HINCRBY", map, "different key", 1])
+
+    assert "a value" ==
+             interpret([
+               "HGET",
+               map,
+               "a key"
+             ])
+  end
 end

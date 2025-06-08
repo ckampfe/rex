@@ -86,6 +86,11 @@ defmodule Rex.HashServer do
     end
   end
 
+  def hincrby(hash_name, key, increment) when is_integer(increment) do
+    server = get_or_start(hash_name)
+    GenServer.call(server, {:hincrby, key, increment})
+  end
+
   @impl GenServer
   def handle_call({:hget, key}, _from, state) do
     {:reply, Map.get(state, key), state}
@@ -156,6 +161,13 @@ defmodule Rex.HashServer do
     else
       {:reply, reply, new_map}
     end
+  end
+
+  def handle_call({:hincrby, key, increment}, _from, state) do
+    value = Map.get(state, key, 0)
+    new_value = value + increment
+    state = Map.put(state, key, new_value)
+    {:reply, new_value, state}
   end
 
   defp get_or_start(hash_name) do

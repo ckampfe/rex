@@ -76,5 +76,9 @@ defmodule Rex do
     HashServer.hexists(hash_name, key)
   end
 
+  def interpret(["HINCRBY", hash_name, key, increment]) do
+    HashServer.hincrby(hash_name, key, increment)
+  end
+
   ### END HASH ###
 end
