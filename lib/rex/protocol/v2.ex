@@ -14,6 +14,7 @@ defmodule Rex.Protocol.V2 do
 
   defp do_decode(s) do
     case s do
+      # bulk string
       <<"$", body::binary>> ->
         {length, <<"\r\n", remainder::binary>>} = Integer.parse(body)
 
@@ -26,6 +27,7 @@ defmodule Rex.Protocol.V2 do
             {:ok, s, rest}
         end
 
+      # array
       <<"*", body::binary>> ->
         [number_of_elements, commands] =
           body
@@ -49,14 +51,12 @@ defmodule Rex.Protocol.V2 do
             {:ok, decoded, rest}
         end
 
+      # simple string
       <<"+", body::binary>> ->
         [s, remaining] = String.split(body, "\r\n", parts: 2)
         {:ok, s, remaining}
 
-      <<"-", body::binary>> ->
-        [s, remaining] = String.split(body, "\r\n", parts: 2)
-        {:ok, {:simple_error, s}, remaining}
-
+      # integer
       <<":", body::binary>> ->
         case Integer.parse(body) do
           {i, "\r\n"} ->
@@ -65,6 +65,11 @@ defmodule Rex.Protocol.V2 do
           {i, <<"\r\n", rest::binary>>} ->
             {:ok, i, rest}
         end
+
+      # simple error
+      <<"-", body::binary>> ->
+        [s, remaining] = String.split(body, "\r\n", parts: 2)
+        {:ok, {:simple_error, s}, remaining}
     end
   end
 

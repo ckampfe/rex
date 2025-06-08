@@ -2,7 +2,7 @@ defmodule Rex.StringServer do
   use GenServer
 
   def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+    GenServer.start_link(__MODULE__, args)
   end
 
   @impl GenServer
@@ -12,11 +12,13 @@ defmodule Rex.StringServer do
   end
 
   def get(key) do
-    GenServer.call(__MODULE__, {:get, key})
+    server = name(key)
+    GenServer.call(server, {:get, key})
   end
 
   def set(key, value) do
-    GenServer.call(__MODULE__, {:set, key, value})
+    server = name(key)
+    GenServer.call(server, {:set, key, value})
   end
 
   @impl GenServer
@@ -27,5 +29,13 @@ defmodule Rex.StringServer do
   def handle_call({:set, key, value}, _from, state) do
     state = Map.put(state, key, value)
     {:reply, "OK", state}
+  end
+
+  defp name(key) do
+    {
+      :via,
+      PartitionSupervisor,
+      {Rex.PartitionStringSupervisor, key}
+    }
   end
 end

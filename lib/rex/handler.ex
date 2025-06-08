@@ -21,8 +21,8 @@ defmodule Rex.Handler do
 
         {:continue, state}
 
-      _ ->
-        {:close, state}
+        # _ ->
+        #   {:close, state}
     end
   end
 end

@@ -11,7 +11,10 @@ defmodule Rex.Application do
       # Starts a worker by calling: Rex.Worker.start_link(arg)
       # {Rex.Worker, arg}
       {Registry, keys: :unique, name: Registry.Rex},
-      {Rex.StringServer, []},
+      {
+        PartitionSupervisor,
+        child_spec: Rex.StringServer.child_spec([]), name: Rex.PartitionStringSupervisor
+      },
       {ThousandIsland, port: 6379, handler_module: Rex.Handler}
     ]
 
