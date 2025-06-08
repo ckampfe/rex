@@ -1,6 +1,7 @@
 defmodule Rex.Handler do
   use ThousandIsland.Handler
   alias Rex.Protocol.V2
+  require Logger
 
   @impl ThousandIsland.Handler
   def handle_connection(socket, state) do
@@ -13,11 +14,17 @@ defmodule Rex.Handler do
   def handle_data(data, socket, state) do
     case V2.decode(data) do
       {:ok, decoded} ->
-        result = Rex.interpret(decoded) |> IO.inspect(label: "interp response")
+        Logger.debug("request decoded: #{inspect(decoded)}")
 
-        response = V2.encode(result) |> IO.inspect(label: "encoded response")
+        result = Rex.interpret(decoded)
 
-        ThousandIsland.Socket.send(socket, response)
+        Logger.debug("interpret result: #{result}")
+
+        reply = V2.encode(result)
+
+        Logger.debug("reply encode result: #{inspect(reply)}")
+
+        ThousandIsland.Socket.send(socket, reply)
 
         {:continue, state}
 
