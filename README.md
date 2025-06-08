@@ -2,6 +2,8 @@
 
 A little crappy implementation of Redis
 
+[![Elixir CI](https://github.com/ckampfe/rex/actions/workflows/elixir.yml/badge.svg)](https://github.com/ckampfe/rex/actions/workflows/elixir.yml)
+
 ## Run
 
 start the server:
