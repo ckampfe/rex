@@ -1,23 +1,5 @@
 defmodule Rex do
-  # TODO
-  #
-  # hashmap ops are absolutely not safe in the presence of parallelism.
-  # values can and will be stomped on by parallel processes.
-  # maybe we should use the ets table as a hashmap itself,
-  # rather than storing a hashmap under a named key
-  #
-  # write after read is especially not safe, as the read value
-  # could have changed out from under you.
-  # there is no way to do an atomic CAS operation in ets
-  #
-  # use a table per hashmap, with a genserver that manages
-  # and serializes access to that table? maybe?
-  #
-  # or: use a genserver per hashmap, and use the registry
-  # to refer to the genserver
-
-  alias Rex.HashServer
-  alias Rex.StringServer
+  alias Rex.{HashServer, StringServer}
 
   ### MISC ###
   def interpret(["PING"]) do
