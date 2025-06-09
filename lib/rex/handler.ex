@@ -18,7 +18,7 @@ defmodule Rex.Handler do
 
         result = Rex.interpret(decoded)
 
-        Logger.debug("interpret result: #{result}")
+        Logger.debug("interpret result: #{inspect(result)}")
 
         reply = V2.encode(result)
 
