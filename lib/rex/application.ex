@@ -13,7 +13,9 @@ defmodule Rex.Application do
       {Registry, keys: :unique, name: Registry.Rex},
       {
         PartitionSupervisor,
-        child_spec: Rex.StringServer.child_spec([]), name: Rex.PartitionStringSupervisor
+        child_spec: Rex.StringServer.child_spec([]),
+        name: Rex.PartitionStringSupervisor,
+        partitions: System.schedulers_online()
       },
       {ThousandIsland, port: 6379, handler_module: Rex.Handler}
     ]
