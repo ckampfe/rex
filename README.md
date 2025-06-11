@@ -18,9 +18,13 @@ $ redis-cli
 
 ## supported operations
 
-- PING
+#### Strings
+
 - GET
 - SET
+
+#### Hashes
+
 - HGET
 - HSET
 - HGETALL
@@ -30,6 +34,18 @@ $ redis-cli
 - HMGET
 - HEXISTS
 - HINCRBY
+
+#### Lists
+
+- LPUSH
+- RPUSH
+- LPOP
+- RPOP
+- LLEN
+
+#### Misc
+
+- PING
 
 ## design
 
