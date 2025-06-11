@@ -31,7 +31,7 @@ defmodule Rex.Protocol.V2 do
       <<"*", body::binary>> ->
         [number_of_elements, commands] =
           body
-          |> String.split("\r\n", parts: 2)
+          |> :binary.split("\r\n")
 
         number_of_elements = String.to_integer(number_of_elements)
 
@@ -53,7 +53,8 @@ defmodule Rex.Protocol.V2 do
 
       # simple string
       <<"+", body::binary>> ->
-        [s, remaining] = String.split(body, "\r\n", parts: 2)
+        [s, remaining] = :binary.split(body, "\r\n")
+
         {:ok, s, remaining}
 
       # integer
@@ -68,7 +69,8 @@ defmodule Rex.Protocol.V2 do
 
       # simple error
       <<"-", body::binary>> ->
-        [s, remaining] = String.split(body, "\r\n", parts: 2)
+        [s, remaining] = :binary.split(body, "\r\n")
+
         {:ok, {:simple_error, s}, remaining}
     end
   end

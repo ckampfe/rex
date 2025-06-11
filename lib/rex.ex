@@ -1,5 +1,5 @@
 defmodule Rex do
-  alias Rex.{HashServer, StringServer}
+  alias Rex.{HashServer, ListServer, StringServer}
 
   ### MISC ###
   def interpret(["PING"]) do
@@ -63,4 +63,44 @@ defmodule Rex do
   end
 
   ### END HASH ###
+
+  ### LIST ###
+
+  def interpret(["LPUSH", list_name | elements]) do
+    ListServer.lpush(list_name, elements)
+  end
+
+  def interpret(["RPUSH", list_name | elements]) do
+    ListServer.rpush(list_name, elements)
+  end
+
+  def interpret(["LPOP", list_name]) do
+    ListServer.lpop(list_name, 1)
+  end
+
+  def interpret(["LPOP", list_name, count]) do
+    ListServer.lpop(list_name, count)
+  end
+
+  def interpret(["RPOP", list_name]) do
+    ListServer.rpop(list_name, 1)
+  end
+
+  def interpret(["RPOP", list_name, count]) do
+    ListServer.rpop(list_name, count)
+  end
+
+  # def interpret(["BLPOP", list_name]) do
+  #   ListServer.blpop(list_name, 1)
+  # end
+
+  # def interpret(["BLPOP", list_name, count]) do
+  #   ListServer.blpop(list_name, count)
+  # end
+
+  def interpret(["LLEN", list_name]) do
+    ListServer.llen(list_name)
+  end
+
+  ### END LIST ###
 end
