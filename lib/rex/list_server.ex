@@ -67,9 +67,6 @@ defmodule Rex.ListServer do
     GenServer.call(__MODULE__, {:rpop, list_name, count})
   end
 
-  # def blpop(list_name, count) do
-  # end
-
   def llen(list_name) do
     GenServer.call(__MODULE__, {:llen, list_name})
   end
@@ -122,6 +119,7 @@ defmodule Rex.ListServer do
     {:reply, :queue.len(q), state}
   end
 
+  # TODO make rpush also work with blpop/brpop
   def handle_call({:rpush, list_name, elements}, _from, %{lists: lists} = state) do
     q = Map.get_lazy(lists, list_name, fn -> :queue.new() end)
 
@@ -193,7 +191,6 @@ defmodule Rex.ListServer do
     if el do
       {:reply, el, state}
     else
-      # list_to_queue
       list_to_queue =
         Enum.reduce(list_names, list_to_queue, fn list_name, acc ->
           q = Map.get(acc, list_name, :queue.new())
@@ -201,7 +198,6 @@ defmodule Rex.ListServer do
           Map.put(acc, list_name, q)
         end)
 
-      # pid_to_list
       pid_to_list = Map.put(pid_to_list, from, list_names)
 
       pid_to_timer =
