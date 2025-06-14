@@ -82,6 +82,10 @@ defmodule Rex do
     ListServer.lpop(list_name, count)
   end
 
+  def interpret(["BLPOP" | lists]) do
+    ListServer.blpop(lists)
+  end
+
   def interpret(["RPOP", list_name]) do
     ListServer.rpop(list_name, 1)
   end
@@ -89,14 +93,6 @@ defmodule Rex do
   def interpret(["RPOP", list_name, count]) do
     ListServer.rpop(list_name, count)
   end
-
-  # def interpret(["BLPOP", list_name]) do
-  #   ListServer.blpop(list_name, 1)
-  # end
-
-  # def interpret(["BLPOP", list_name, count]) do
-  #   ListServer.blpop(list_name, count)
-  # end
 
   def interpret(["LLEN", list_name]) do
     ListServer.llen(list_name)

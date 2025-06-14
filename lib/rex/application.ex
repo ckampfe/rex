@@ -11,6 +11,7 @@ defmodule Rex.Application do
       # Starts a worker by calling: Rex.Worker.start_link(arg)
       # {Rex.Worker, arg}
       {Registry, keys: :unique, name: Registry.Rex},
+      {Rex.ListServer, %{}},
       {
         PartitionSupervisor,
         child_spec: Rex.StringServer.child_spec([]),
