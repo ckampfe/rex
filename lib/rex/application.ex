@@ -8,10 +8,7 @@ defmodule Rex.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      # Starts a worker by calling: Rex.Worker.start_link(arg)
-      # {Rex.Worker, arg}
       {Registry, keys: :unique, name: Registry.Rex},
-      {Rex.ListServer, %{}},
       {
         PartitionSupervisor,
         child_spec: Rex.StringServer.child_spec([]),

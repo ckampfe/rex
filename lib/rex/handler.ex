@@ -32,4 +32,10 @@ defmodule Rex.Handler do
         #   {:close, state}
     end
   end
+
+  @impl ThousandIsland.Handler
+  def handle_timeout(_socket, _state) do
+    Logger.debug("timed out!")
+    :ok
+  end
 end
