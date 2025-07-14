@@ -41,8 +41,8 @@ defmodule ProtocolV2Test do
   end
 
   test "encodes simple errors" do
-    assert ["-", "", "\r\n"] = encode({:simple_error, ""})
-    assert ["-", "SYNTAX syntax error", "\r\n"] = encode({:simple_error, "SYNTAX syntax error"})
+    assert ["-", "", "\r\n"] = encode({:error, ""})
+    assert ["-", "SYNTAX syntax error", "\r\n"] = encode({:error, "SYNTAX syntax error"})
   end
 
   test "encodes integers" do

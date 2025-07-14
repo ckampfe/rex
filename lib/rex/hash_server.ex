@@ -97,19 +97,27 @@ defmodule Rex.HashServer do
   end
 
   def handle_call({:hset, keypairs}, _from, state) do
-    addition_map =
-      keypairs
-      |> Enum.chunk_every(2)
-      |> Enum.reduce(%{}, fn [key, value], acc ->
-        Map.put(acc, key, value)
-      end)
+    if Kernel.rem(Enum.count(keypairs), 2) == 0 do
+      addition_map =
+        keypairs
+        |> Enum.chunk_every(2)
+        |> Enum.reduce(%{}, fn [key, value], acc ->
+          Map.put(acc, key, value)
+        end)
 
-    new_map = Map.merge(state, addition_map)
+      new_map = Map.merge(state, addition_map)
 
-    keys_inserted =
-      Kernel.map_size(new_map) - Kernel.map_size(state)
+      keys_inserted =
+        Kernel.map_size(new_map) - Kernel.map_size(state)
 
-    {:reply, keys_inserted, new_map}
+      {:reply, keys_inserted, new_map}
+    else
+      {
+        :reply,
+        {:error, "ERR wrong number of arguments for 'hset' command"},
+        state
+      }
+    end
   end
 
   def handle_call(:hlen, _from, state) do

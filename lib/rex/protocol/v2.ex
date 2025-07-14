@@ -7,6 +7,12 @@
 # remains to be seen how to default to encoding maps as arrays, or
 # whatever else V2 requires
 defmodule Rex.Protocol.V2 do
+  @bulk_string_type "$"
+  @array_type "*"
+  @simple_string_type "+"
+  @integer_type ":"
+  @simple_error_type "-"
+
   def decode(s) do
     {:ok, decoded, ""} = do_decode(s)
     {:ok, decoded}
@@ -14,8 +20,7 @@ defmodule Rex.Protocol.V2 do
 
   defp do_decode(s) do
     case s do
-      # bulk string
-      <<"$", body::binary>> ->
+      <<@bulk_string_type, body::binary>> ->
         {length, <<"\r\n", remainder::binary>>} = Integer.parse(body)
 
         case length do
@@ -27,8 +32,7 @@ defmodule Rex.Protocol.V2 do
             {:ok, s, rest}
         end
 
-      # array
-      <<"*", body::binary>> ->
+      <<@array_type, body::binary>> ->
         [number_of_elements, commands] =
           body
           |> :binary.split("\r\n")
@@ -51,14 +55,12 @@ defmodule Rex.Protocol.V2 do
             {:ok, decoded, rest}
         end
 
-      # simple string
-      <<"+", body::binary>> ->
+      <<@simple_string_type, body::binary>> ->
         [s, remaining] = :binary.split(body, "\r\n")
 
         {:ok, s, remaining}
 
-      # integer
-      <<":", body::binary>> ->
+      <<@integer_type, body::binary>> ->
         case Integer.parse(body) do
           {i, "\r\n"} ->
             {:ok, i, ""}
@@ -67,60 +69,102 @@ defmodule Rex.Protocol.V2 do
             {:ok, i, rest}
         end
 
-      # simple error
-      <<"-", body::binary>> ->
+      <<@simple_error_type, body::binary>> ->
         [s, remaining] = :binary.split(body, "\r\n")
 
         {:ok, {:simple_error, s}, remaining}
     end
   end
 
-  def encode(message) when is_binary(message) do
-    ["+", message, "\r\n"]
+  def encode(value) do
+    Rex.Protocol.V2.Encode.encode(value)
   end
 
-  def encode(message) when is_integer(message) do
-    [":", Integer.to_string(message), "\r\n"]
+  defmodule BulkString do
+    defstruct [:s]
+
+    def new(s) do
+      %__MODULE__{s: s}
+    end
   end
+end
 
-  def encode([]), do: "*0\r\n"
+defprotocol Rex.Protocol.V2.Encode do
+  def encode(value)
+end
 
-  def encode(message) when is_list(message) do
-    length = Enum.count(message)
+defimpl Rex.Protocol.V2.Encode, for: Rex.Protocol.V2.BulkString do
+  def encode(s) do
+    # $<length>\r\n<data>\r\n
+    ["$", Integer.to_string(byte_size(s.s)), "\r\n", s.s, "\r\n"]
+  end
+end
+
+defimpl Rex.Protocol.V2.Encode, for: BitString do
+  def encode(s) do
+    ["+", s, "\r\n"]
+  end
+end
+
+defimpl Rex.Protocol.V2.Encode, for: Integer do
+  def encode(i) do
+    [":", Integer.to_string(i), "\r\n"]
+  end
+end
+
+defimpl Rex.Protocol.V2.Encode, for: Atom do
+  def encode(b) do
+    case b do
+      true ->
+        "#t\r\n"
+
+      false ->
+        "#f\r\n"
+
+      nil ->
+        "_\r\n"
+
+      _ ->
+        raise ""
+    end
+  end
+end
+
+defimpl Rex.Protocol.V2.Encode, for: List do
+  def encode(list) when list == [], do: "*0\r\n"
+
+  def encode(list) do
+    length = Enum.count(list)
 
     [
       "*",
       to_string(length),
       "\r\n",
-      Enum.map(message, fn el ->
-        encode(el)
+      Enum.map(list, fn el ->
+        Rex.Protocol.V2.Encode.encode(el)
       end)
     ]
   end
+end
 
-  def encode(nil) do
-    "_\r\n"
-  end
-
-  def encode(message) when is_boolean(message) do
-    if message do
-      "#t\r\n"
-    else
-      "#f\r\n"
-    end
-  end
-
-  def encode(message) when message == %{} do
-    encode([])
-  end
-
-  def encode(message) when is_map(message) do
-    message
+defimpl Rex.Protocol.V2.Encode, for: Map do
+  def encode(m) do
+    m
     |> Enum.flat_map(fn {k, v} -> [k, v] end)
-    |> encode()
+    |> Rex.Protocol.V2.Encode.encode()
   end
+end
 
-  def encode({:simple_error, error}) do
+defimpl Rex.Protocol.V2.Encode, for: Tuple do
+  def encode({:error, error}) do
     ["-", error, "\r\n"]
+  end
+end
+
+defimpl Rex.Protocol.V2.Encode, for: MapSet do
+  def encode(set) do
+    set
+    |> Enum.into([])
+    |> Rex.Protocol.V2.Encode.encode()
   end
 end

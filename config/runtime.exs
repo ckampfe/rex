@@ -7,3 +7,7 @@ case config_env() do
   _ ->
     nil
 end
+
+config :logger, :default_formatter,
+  format: "\n$time [$level] $message $metadata\n",
+  metadata: [:mfa, :pid, :registered_name]

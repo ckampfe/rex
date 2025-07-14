@@ -1,4 +1,5 @@
 defmodule Rex.ListServer do
+  alias Rex.ListSubscriptionServer
   use GenServer
   require Logger
 
@@ -14,7 +15,7 @@ defmodule Rex.ListServer do
 
   def lpush(list_name, elements) do
     server = get_or_start(list_name)
-    GenServer.call(server, {:lpush, elements})
+    GenServer.call(server, {:lpush, elements, list_name})
   end
 
   def rpush(list_name, elements) do
@@ -54,8 +55,8 @@ defmodule Rex.ListServer do
 
   @impl GenServer
   def handle_call(
-        {:lpush, elements},
-        _from,
+        {:lpush, elements, list_name},
+        from,
         state
       ) do
     state =
@@ -63,7 +64,13 @@ defmodule Rex.ListServer do
         :queue.in_r(el, acc)
       end)
 
-    {:reply, :queue.len(state), state}
+    GenServer.reply(from, :queue.len(state))
+
+    # do stuff here
+    state = ListSubscriptionServer.publish_to_subscribers(state, list_name)
+
+    # {:reply, :queue.len(state), state}
+    {:noreply, state}
   end
 
   # TODO make rpush also work with blpop/brpop

@@ -95,6 +95,17 @@ defmodule HashTest do
              ])
   end
 
+  test "HSET uneven number of keys", %{map: map} do
+    assert {:error, "ERR wrong number of arguments for 'hset' command"} ==
+             interpret([
+               "HSET",
+               map,
+               "a",
+               "b",
+               "c"
+             ])
+  end
+
   test "HLEN", %{map: map} do
     assert 0 ==
              interpret([

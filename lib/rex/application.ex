@@ -15,7 +15,8 @@ defmodule Rex.Application do
         name: Rex.PartitionStringSupervisor,
         partitions: System.schedulers_online()
       },
-      {ThousandIsland, port: 6379, handler_module: Rex.Handler}
+      {Rex.ListSubscriptionServer, []},
+      {ThousandIsland, port: 6379, handler_module: Rex.Handler, read_timeout: :timer.minutes(15)}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

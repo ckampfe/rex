@@ -1,5 +1,6 @@
 defmodule Rex do
-  alias Rex.{HashServer, ListServer, StringServer}
+  alias Rex.ListSubscriptionServer
+  alias Rex.{HashServer, ListServer, StringServer, SetServer, ListSubscriptionServer}
 
   ### MISC ###
   def interpret(["PING"]) do
@@ -94,5 +95,25 @@ defmodule Rex do
     ListServer.llen(list_name)
   end
 
+  def interpret(["BLPOP" | args]) do
+    ListSubscriptionServer.subscribe(args)
+  end
+
   ### END LIST ###
+
+  ### SET ###
+
+  def interpret(["SADD", set_name | members]) do
+    SetServer.sadd(set_name, members)
+  end
+
+  def interpret(["SMEMBERS", set_name]) do
+    SetServer.smembers(set_name)
+  end
+
+  def interpret(["SISMEMBER", set_name, member]) do
+    SetServer.sismember(set_name, member)
+  end
+
+  ### END SET ###
 end
