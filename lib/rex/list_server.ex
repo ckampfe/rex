@@ -15,12 +15,12 @@ defmodule Rex.ListServer do
 
   def lpush(list_name, elements) do
     server = get_or_start(list_name)
-    GenServer.call(server, {:lpush, elements, list_name})
+    GenServer.call(server, {:lpush, list_name, elements})
   end
 
   def rpush(list_name, elements) do
     server = get_or_start(list_name)
-    GenServer.call(server, {:rpush, elements})
+    GenServer.call(server, {:rpush, list_name, elements})
   end
 
   def lpop(list_name, count) do
@@ -55,7 +55,7 @@ defmodule Rex.ListServer do
 
   @impl GenServer
   def handle_call(
-        {:lpush, elements, list_name},
+        {:lpush, list_name, elements},
         from,
         state
       ) do
@@ -69,16 +69,18 @@ defmodule Rex.ListServer do
     # do stuff here
     state = ListSubscriptionServer.publish_to_subscribers(state, list_name)
 
-    # {:reply, :queue.len(state), state}
     {:noreply, state}
   end
 
-  # TODO make rpush also work with blpop/brpop
-  def handle_call({:rpush, elements}, _from, state) do
+  def handle_call({:rpush, list_name, elements}, from, state) do
     state =
       Enum.reduce(elements, state, fn el, acc ->
         :queue.in(el, acc)
       end)
+
+    GenServer.reply(from, :queue.len(state))
+
+    state = ListSubscriptionServer.publish_to_subscribers(state, list_name)
 
     {:reply, :queue.len(state), state}
   end

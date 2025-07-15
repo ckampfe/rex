@@ -42,6 +42,8 @@ $ redis-cli
 - LPOP
 - RPOP
 - LLEN
+- BLPOP
+- BRPOP
 
 #### Misc
 

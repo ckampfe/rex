@@ -16,8 +16,6 @@ defmodule Rex.Handler do
 
   @impl ThousandIsland.Handler
   def handle_data(data, socket, state) do
-    IO.inspect(socket)
-
     case V2.decode(data) do
       {:ok, decoded} ->
         Logger.debug("request decoded: #{inspect(decoded)}")
@@ -25,8 +23,10 @@ defmodule Rex.Handler do
         # result =
         case Rex.interpret(decoded) do
           :defer ->
+            # notice that there is no socket send here!
+            # it happens in the handle_info that handles the
+            # `:reply_to_blocking_socket` message
             Logger.debug("deferring")
-            # notice that there is no socket send here
             {:continue, state}
 
           result ->
@@ -66,8 +66,6 @@ defmodule Rex.Handler do
 
   @impl GenServer
   def handle_info({:reply_to_blocking_socket, to_publish}, {socket, _state} = socketstate) do
-    IO.inspect(socketstate)
-    dbg(to_publish)
     reply = V2.encode(to_publish)
     ThousandIsland.Socket.send(socket, reply)
     {:noreply, socketstate}

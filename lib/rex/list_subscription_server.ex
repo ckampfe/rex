@@ -24,10 +24,19 @@ defmodule Rex.ListSubscriptionServer do
 
   @impl GenServer
   def handle_call(
-        {:subscribe, args},
+        {:subscribe, [op | args]},
         {pid, _ref} = from,
         %__MODULE__{subscribers: subscribers} = state
       ) do
+    pop_from =
+      case op do
+        "BLPOP" ->
+          :left
+
+        "BRPOP" ->
+          :right
+      end
+
     monitor_ref = Process.monitor(pid)
 
     Logger.debug("monitoring #{inspect(pid)}")
@@ -47,18 +56,11 @@ defmodule Rex.ListSubscriptionServer do
       Process.send_after(__MODULE__, {:timeout, from}, timeout)
     end
 
-    # struct Subscription {
-    #     pop_from: PopFrom,
-    #     subscribed_to: Vec<ListName>,
-    #     tx: tokio::sync::oneshot::Sender<(ListName, Vec<u8>)>,
-    # }
-    # subscribers =
-    #   :queue.in(%{pop_from: :left, subscribed_to: keys, pid_ref: from}, subscribers)
     subscribers =
       subscribers ++
         [
           %{
-            pop_from: :left,
+            pop_from: pop_from,
             subscribed_to: keys,
             pid_ref: from,
             monitor_ref: monitor_ref
@@ -106,7 +108,6 @@ defmodule Rex.ListSubscriptionServer do
           :left ->
             [el | rest] = list_state
 
-            # GenServer.reply(
             Process.send(
               pid,
               {:reply_to_blocking_socket,
@@ -122,7 +123,6 @@ defmodule Rex.ListSubscriptionServer do
           :right ->
             el = List.last(list_state)
 
-            # GenServer.reply(
             Process.send(
               pid,
               {:reply_to_blocking_socket,
@@ -142,6 +142,7 @@ defmodule Rex.ListSubscriptionServer do
     end
   end
 
+  @impl GenServer
   def handle_info({:timeout, from}, %__MODULE__{subscribers: subscribers} = state) do
     subscribers =
       Enum.reject(subscribers, fn %{pid_ref: pid_ref} ->
@@ -151,14 +152,11 @@ defmodule Rex.ListSubscriptionServer do
     {:noreply, %{state | subscribers: subscribers}}
   end
 
-  @impl GenServer
   def handle_info(
         {:DOWN, down_ref, :process, down_pid, _reason} = m,
         %__MODULE__{subscribers: subscribers} = state
       ) do
     Logger.debug(inspect(m))
-
-    dbg(subscribers)
 
     subscribers =
       Enum.reject(
@@ -170,8 +168,6 @@ defmodule Rex.ListSubscriptionServer do
           subscriber_pid == down_pid && monitor_ref == down_ref
         end
       )
-
-    dbg(subscribers)
 
     {:noreply, %{state | subscribers: subscribers}}
   end

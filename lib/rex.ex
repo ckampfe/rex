@@ -95,8 +95,20 @@ defmodule Rex do
     ListServer.llen(list_name)
   end
 
-  def interpret(["BLPOP" | args]) do
-    ListSubscriptionServer.subscribe(args)
+  def interpret(["BLPOP" | [list_name | _rest]] = all) do
+    if reply = ListServer.lpop(list_name, 1) do
+      reply
+    else
+      ListSubscriptionServer.subscribe(all)
+    end
+  end
+
+  def interpret(["BRPOP" | [list_name | _rest]] = all) do
+    if reply = ListServer.rpop(list_name, 1) do
+      reply
+    else
+      ListSubscriptionServer.subscribe(all)
+    end
   end
 
   ### END LIST ###
