@@ -57,8 +57,6 @@ $ redis-cli
 
 ## design
 
-Instread, we use GenServers, partitioning state across them to allow concurrent operations.
-
 Strings (`GET`, `SET`) are partitioned across N servers where N = `System.schedulers_online()`.
 
 Each hash and list gets its own server, so operations on hash/list `a` and hash/list `b` happen concurrently.
