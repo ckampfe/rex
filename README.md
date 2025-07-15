@@ -45,6 +45,12 @@ $ redis-cli
 - BLPOP
 - BRPOP
 
+#### Sets
+
+- SADD
+- SMEMBERS
+- SISMEMBER
+
 #### Misc
 
 - PING
