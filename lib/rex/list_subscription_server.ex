@@ -39,8 +39,6 @@ defmodule Rex.ListSubscriptionServer do
 
     monitor_ref = Process.monitor(pid)
 
-    Logger.debug("monitoring #{inspect(pid)}")
-
     keys = Enum.slice(args, 0..-2//1)
 
     timeout =
@@ -49,8 +47,6 @@ defmodule Rex.ListSubscriptionServer do
       |> Float.parse()
       |> then(fn {v, _} -> v * 1000 end)
       |> trunc()
-
-    Logger.debug("timeout #{timeout}")
 
     if timeout > 0 do
       Process.send_after(__MODULE__, {:timeout, from}, timeout)
@@ -69,7 +65,6 @@ defmodule Rex.ListSubscriptionServer do
 
     state = %{state | subscribers: subscribers}
 
-    # {:noreply, state}
     {:reply, :defer, state}
   end
 
@@ -153,11 +148,9 @@ defmodule Rex.ListSubscriptionServer do
   end
 
   def handle_info(
-        {:DOWN, down_ref, :process, down_pid, _reason} = m,
+        {:DOWN, down_ref, :process, down_pid, _reason},
         %__MODULE__{subscribers: subscribers} = state
       ) do
-    Logger.debug(inspect(m))
-
     subscribers =
       Enum.reject(
         subscribers,
